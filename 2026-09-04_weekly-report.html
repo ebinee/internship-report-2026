@@ -1,0 +1,200 @@
+<title>세션 작업 리포트 · 2026-09-04</title>
+<link rel="stylesheet" href="./assets/style.css">
+
+<div class="page">
+  <a class="crumb" href="./index.html">← 전체 리포트</a>
+
+  <header class="hero">
+    <span class="eyebrow">Session Report</span>
+    <h1>서버 이전 후속 대응</h1>
+    <div class="meta-row">
+      <span><b>날짜</b> 2026-09-04</span>
+      <span><b>범위</b> 접속 복구 · 버그 진단/수정 · 서버 데이터 동기화</span>
+    </div>
+
+    <div class="stat-strip cols-3">
+      <div class="stat ok"><span class="num">4</span><span class="label">수정 완료</span></div>
+      <div class="stat warn"><span class="num">3</span><span class="label">원인 규명 · 조치 보류</span></div>
+      <div class="stat pending"><span class="num">3</span><span class="label">확인/조치 필요</span></div>
+    </div>
+  </header>
+
+  <div class="callout">
+    <h2>확인이 필요한 항목</h2>
+    <ul>
+      <li>원본 git bare 저장소 실제 위치 미확인 — 담당자께 재문의 필요</li>
+      <li>신서버 git bare 저장소 위치도 동일하게 미확인 (참조 경로가 서버에 실존하지 않음)</li>
+      <li>OpenAI API 키 재발급 필요 (기존 키 401 인증 실패, service account로 발급 권장)</li>
+      <li>"비유사단어" 오분류 수정안은 설계만 완료, 코드 적용은 아직 안 함</li>
+      <li>이미지 유사도 검색용 캐시 디렉토리 생성 여부 최종 확정 대기</li>
+    </ul>
+  </div>
+
+  <div class="timeline">
+
+    <section class="entry ok">
+      <div class="entry-node">01</div>
+      <div class="entry-head">
+        <span class="entry-date">git 접속 복구</span>
+        <span class="pill ok">수정 완료</span>
+      </div>
+      <p class="entry-lede"><code class="inline">git pull</code>이 타임아웃으로 실패 — origin이 이전 서버를 그대로 가리키고 있었음.</p>
+      <div class="entry-body">
+        <ul class="bullets">
+          <li>SSH 설정에 게이트 경유 3단 구성을 추가하고, <code class="inline">origin</code>/<code class="inline">live</code> remote를 새 경로로 재설정 — VPN 연결 후 접속 정상 확인</li>
+          <li>단, <code class="inline">origin</code>이 가리키는 bare 저장소 자체가 서버에 실존하지 않는 것으로 확인 — 저장소의 실제 현재 위치는 이번 세션에서 못 찾음</li>
+        </ul>
+        <div class="kv"><span>~/.ssh/config · .git/config (origin, live)</span></div>
+      </div>
+    </section>
+
+    <section class="entry ok">
+      <div class="entry-node">02</div>
+      <div class="entry-head">
+        <span class="entry-date">서버 토폴로지 확정</span>
+        <span class="pill ok">수정 완료</span>
+      </div>
+      <div class="entry-body">
+        <ul class="bullets">
+          <li>공유받은 정보와 실제 SFTP 설정을 대조해 호스트-키 매핑을 확정</li>
+          <li>키 3개(게이트용·모니터용·웹용) 확인 완료</li>
+          <li>보조 경로 서버는 게이트에서 "No route to host" — 라우팅 자체가 안 잡히는 상태로 남아있음</li>
+        </ul>
+        <div class="chip-row">
+          <span class="chip">게이트 서버 (SSH:22)</span>
+          <span class="chip">AI 서버 (사설망)</span>
+          <span class="chip">보조 경로 서버 (unreachable)</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="entry ok">
+      <div class="entry-node">03</div>
+      <div class="entry-head">
+        <span class="entry-date">"1차 매칭" 환경변수 미설정 수정</span>
+        <span class="pill ok">수정 완료</span>
+      </div>
+      <p class="entry-lede">특정 실행 경로에서 존재하지 않는 캐시 경로로 떨어져 크래시. 다른 실행 경로에선 정상 작동.</p>
+      <div class="entry-body">
+        <ul class="bullets">
+          <li>원인: 한쪽 실행 경로는 <code class="inline">HF_HOME</code>/<code class="inline">HOME</code>/<code class="inline">TRANSFORMERS_CACHE</code>를 명시적으로 세팅하지만, 다른 경로는 러너를 직접 호출해 이 env가 전혀 전달되지 않았음</li>
+        </ul>
+        <pre><span class="del">- "run": { "type": "chain", "scripts": [...], "continue_on_error": false }</span>
+<span class="add">+ "run": { "type": "chain", "scripts": [...], "continue_on_error": false,
++   "env": { "HOME": "/home/monitor",
++            "HF_HOME": "/home/monitor/.cache/huggingface",
++            "TRANSFORMERS_CACHE": "/home/monitor/.cache/huggingface" } }</span></pre>
+        <div class="chip-row">
+          <span class="chip">web_dashboard/server_run_manifest.json</span>
+          <span class="chip">web_dashboard/app.py — server_run_run()</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="entry ok">
+      <div class="entry-node">04</div>
+      <div class="entry-head">
+        <span class="entry-date">중복 매칭 job 정리</span>
+        <span class="pill ok">조치 완료</span>
+      </div>
+      <div class="entry-body">
+        <ul class="bullets">
+          <li>같은 배치에 대해 job이 2개 동시 실행 중이던 것을 발견 — 하나는 상태가 "cancelled"인데도 실제 프로세스는 계속 GPU/CPU를 점유</li>
+          <li>좀비 프로세스 3개를 SIGTERM으로 정리하고, 정상 job 하나만 남김</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="entry warn">
+      <div class="entry-node">05</div>
+      <div class="entry-head">
+        <span class="entry-date">"비유사단어" 오분류 원인 규명</span>
+        <span class="pill warn">원인 규명 · 미적용</span>
+      </div>
+      <p class="entry-lede">국내외 상표명이 사실상 동일한데("CLUB" vs "CLUBS" 한 글자 차이) "비유사단어"로 오분류됨.</p>
+      <div class="entry-body">
+        <ul class="bullets">
+          <li>재검증 단계가 상표명을 <b>최대 5단어까지만</b> 이어붙여 비교 — 교집합 자체는 단어 수 제한 없이 정확히 추출되지만, 긴 문구는 재검증 후보로조차 만들어지지 않아 항상 실패</li>
+          <li>유사도 등급(1/2/3)은 이 버그와 무관한 별도 로직으로 계산되어, 이번 건은 이미 정상 산정 — 실제 필터링 결과에는 영향 없음</li>
+          <li><b>설계된 수정안</b> — 기존 로직은 그대로 두고, 5단어를 넘어 "비유사단어"로 떨어진 문구만 별도 값으로 구분해 재검사. 요청에 따라 코드는 적용하지 않고 원복</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="entry warn">
+      <div class="entry-node">06</div>
+      <div class="entry-head">
+        <span class="entry-date">OpenAI API 키 인증 실패</span>
+        <span class="pill warn">원인 규명</span>
+      </div>
+      <div class="entry-body">
+        <ul class="bullets">
+          <li>캐시 적재 실행 로그에서 GPT 조회만 전부 실패, 다른 소스는 정상 — 인증 테스트 결과 401 Incorrect API key 확인</li>
+          <li>저장된 키 길이가 최신 발급 키에 비해 비정상적으로 짧음 — 복사 과정에서 잘렸을 가능성. service account로 재발급 권장 (특정 개인 계정에 종속되지 않도록)</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="entry ok">
+      <div class="entry-node">07</div>
+      <div class="entry-head">
+        <span class="entry-date">홈페이지 필터 실행 포트 오류</span>
+        <span class="pill ok">수정 완료 (서버)</span>
+      </div>
+      <p class="entry-lede">러너 호출부가 자기 자신을 잘못된 포트(443)로 호출 — 실제 서버는 8080에서 평문 HTTP만 받는 구조였음.</p>
+      <div class="entry-body">
+        <pre><span class="del">- $ch = curl_init('https://127.0.0.1/' . ltrim($path, '/'));</span>
+<span class="add">+ $ch = curl_init('http://127.0.0.1:8080/' . ltrim($path, '/'));</span></pre>
+        <div class="kv"><span>대상 컨트롤러 파일 · 백업 생성 · lint 통과</span></div>
+      </div>
+    </section>
+
+    <section class="entry ok">
+      <div class="entry-node">08</div>
+      <div class="entry-head">
+        <span class="entry-date">이미지 업로드 로그 오탐 수정</span>
+        <span class="pill ok">수정 완료</span>
+      </div>
+      <p class="entry-lede">명령어 체이닝 때문에 일부 파일의 권한 오류가 전체 작업 실패로 잘못 표시되던 문제.</p>
+      <div class="entry-body">
+        <ul class="bullets">
+          <li>이미지 폴더에 다른 계정이 만든 파일이 섞여 있어 그 파일에 대한 권한 변경만 거부됐는데, <code class="inline">&amp;&amp;</code> 체이닝 때문에 전체 국가 스텝이 "해제 실패"로 표시됨 — 실제 업로드/압축 해제 자체는 정상이었음(파일 크기·타임스탬프 대조로 확인)</li>
+        </ul>
+        <pre><span class="del">- f"chmod -R a+rX {remote_image_dir}"</span>
+<span class="add">+ f"(chmod -R a+rX {remote_image_dir} 2>/dev/null; true)"</span></pre>
+        <div class="chip-row"><span class="chip">report_image_upload.py</span></div>
+      </div>
+    </section>
+
+    <section class="entry ok">
+      <div class="entry-node">09</div>
+      <div class="entry-head">
+        <span class="entry-date">로컬 저장소 재동기화</span>
+        <span class="pill ok">동기화 완료</span>
+      </div>
+      <div class="entry-body">
+        <ul class="bullets">
+          <li>로컬 개발 저장소도 origin이 예전 서버를 가리키고 있어 재설정했으나, bare 저장소 실체가 없어 fetch 실패(01번 항목과 동일 원인)</li>
+          <li>대안으로 서버 라이브 워킹 디렉토리를 직접 스트리밍해 동기화 — 대용량 이미지·데이터 디렉토리(수백 GB)는 제외하고 코드만 받음</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="entry pending">
+      <div class="entry-node">10</div>
+      <div class="entry-head">
+        <span class="entry-date">이미지 유사도 캐시 디렉토리 누락</span>
+        <span class="pill pending">원인 규명 · 조치 대기</span>
+      </div>
+      <div class="entry-body">
+        <ul class="bullets">
+          <li>이미지 임베딩 실행 시 03번 항목과 같은 계열의 에러 — 캐시 디렉토리가 존재하지 않아 최초 다운로드 시 크래시</li>
+          <li>03번과 달리 애플리케이션 쪽 env 누락이 아니라, 스크립트가 <b>의도적으로</b> 이 경로를 지정한 것("서버 프로세스도 읽을 수 있는 캐시") — 서버 이전 시 이 디렉토리 자체가 안 옮겨진 것으로 판단. 코드 수정이 아니라 서버에 디렉토리 생성(+권한 부여)이 필요하며, 실행 여부는 아직 미확정</li>
+        </ul>
+      </div>
+    </section>
+
+  </div>
+
+  <footer class="page-footer">2026-09-04 작성</footer>
+</div>
