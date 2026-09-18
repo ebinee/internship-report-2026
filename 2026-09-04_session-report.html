@@ -1,0 +1,376 @@
+<title>세션 작업 리포트 — InternGUI / monitor.iphuman.com</title>
+<style>
+  :root{
+    --paper:#F5F6F2;
+    --paper-raised:#FFFFFF;
+    --ink:#1B1F1D;
+    --ink-soft:#565F5A;
+    --ink-faint:#8B948E;
+    --line:#DBE0D9;
+    --accent:#2B5F6B;
+    --accent-soft:#E4EEEF;
+    --ok:#3F7A54;
+    --ok-soft:#E7F1E9;
+    --warn:#AD7A1B;
+    --warn-soft:#F6EEDD;
+    --pending:#9C4530;
+    --pending-soft:#F4E7E2;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+    --kr: "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--kr);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    padding:56px 24px 96px;
+  }
+  @media (prefers-reduced-motion: no-preference){
+    .fade-in{animation:fadeIn .5s ease-out both;}
+    .card:nth-of-type(1){animation-delay:.02s;}
+    .card:nth-of-type(2){animation-delay:.05s;}
+    .card:nth-of-type(3){animation-delay:.08s;}
+  }
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+  .page{max-width:760px;margin:0 auto;}
+
+  /* ---------- header ---------- */
+  header{
+    display:flex;flex-direction:column;gap:10px;
+    padding-bottom:28px;margin-bottom:32px;
+    border-bottom:1px solid var(--line);
+  }
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--accent);
+  }
+  h1{
+    font-size:28px;font-weight:700;margin:0;letter-spacing:-.01em;
+    text-wrap:balance;
+  }
+  .meta{
+    display:flex;gap:18px;flex-wrap:wrap;
+    font-family:var(--mono);font-size:12.5px;color:var(--ink-soft);
+  }
+  .meta b{color:var(--ink);font-weight:600;}
+
+  /* ---------- summary strip ---------- */
+  .stats{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:1px;
+    background:var(--line);
+    border:1px solid var(--line);border-radius:10px;
+    overflow:hidden;margin-bottom:28px;
+  }
+  .stat{background:var(--paper-raised);padding:16px 18px;}
+  .stat .n{font-family:var(--mono);font-size:26px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;}
+  .stat .l{font-size:12.5px;color:var(--ink-soft);margin-top:6px;}
+  .stat.ok .n{color:var(--ok);}
+  .stat.warn .n{color:var(--warn);}
+  .stat.pending .n{color:var(--pending);}
+
+  /* ---------- open items ---------- */
+  .open-items{
+    background:var(--pending-soft);
+    border:1px solid #E4C9BE;
+    border-radius:10px;
+    padding:18px 20px;margin-bottom:36px;
+  }
+  .open-items h2{
+    font-size:13px;margin:0 0 10px;letter-spacing:.04em;
+    font-family:var(--mono);text-transform:uppercase;color:var(--pending);
+  }
+  .open-items ul{margin:0;padding-left:0;list-style:none;}
+  .open-items li{
+    display:flex;gap:10px;padding:6px 0;font-size:14.5px;
+  }
+  .open-items li::before{
+    content:"→";color:var(--pending);flex:none;font-weight:600;
+  }
+
+  /* ---------- toc ---------- */
+  .toc{margin-bottom:40px;}
+  .toc-title{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:10px;}
+  .toc ol{margin:0;padding:0;list-style:none;counter-reset:t;}
+  .toc li{
+    counter-increment:t;
+    display:flex;align-items:baseline;gap:10px;
+    padding:7px 0;border-bottom:1px dotted var(--line);
+    font-size:14.5px;
+  }
+  .toc li a{color:var(--ink);text-decoration:none;}
+  .toc li a:hover{color:var(--accent);}
+  .toc .tnum{
+    font-family:var(--mono);color:var(--ink-faint);font-size:12.5px;
+    flex:none;width:20px;
+  }
+  .toc .status-dot{flex:none;width:7px;height:7px;border-radius:50%;}
+  .status-dot.ok{background:var(--ok);}
+  .status-dot.warn{background:var(--warn);}
+  .status-dot.pending{background:var(--pending);}
+
+  /* ---------- cards ---------- */
+  .card{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:22px 24px 24px;
+    margin-bottom:18px;
+    position:relative;
+    scroll-margin-top:20px;
+  }
+  .card::before{
+    content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;
+    border-radius:0 3px 3px 0;
+  }
+  .card.ok::before{background:var(--ok);}
+  .card.warn::before{background:var(--warn);}
+  .card.pending::before{background:var(--pending);}
+
+  .card-head{
+    display:flex;justify-content:space-between;align-items:flex-start;gap:16px;
+    margin-bottom:12px;
+  }
+  .card-title{
+    display:flex;align-items:baseline;gap:8px;
+  }
+  .card-title .tnum{font-family:var(--mono);color:var(--ink-faint);font-size:13px;}
+  .card-title h3{font-size:17px;margin:0;font-weight:700;text-wrap:balance;}
+
+  .pill{
+    flex:none;
+    font-family:var(--mono);font-size:11px;letter-spacing:.03em;
+    padding:3px 9px;border-radius:20px;font-weight:600;white-space:nowrap;
+  }
+  .pill.ok{background:var(--ok-soft);color:var(--ok);}
+  .pill.warn{background:var(--warn-soft);color:var(--warn);}
+  .pill.pending{background:var(--pending-soft);color:var(--pending);}
+
+  .card p{margin:0 0 10px;font-size:14.5px;color:var(--ink);}
+  .card p:last-child{margin-bottom:0;}
+  .card .lede{color:var(--ink-soft);font-size:14px;}
+
+  .files{
+    display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 4px;
+  }
+  .file-chip{
+    font-family:var(--mono);font-size:11.5px;color:var(--accent);
+    background:var(--accent-soft);
+    padding:3px 8px;border-radius:5px;
+    white-space:nowrap;
+  }
+
+  code, .inline-code{
+    font-family:var(--mono);font-size:.92em;
+    background:var(--accent-soft);color:var(--accent);
+    padding:1px 5px;border-radius:4px;
+  }
+
+  pre{
+    font-family:var(--mono);font-size:12.5px;line-height:1.55;
+    background:#161A18;color:#DDE3DE;
+    padding:12px 14px;border-radius:8px;
+    overflow-x:auto;margin:10px 0;
+  }
+  pre .del{color:#E39A8A;}
+  pre .add{color:#8FD3A6;}
+
+  .kv{
+    font-family:var(--mono);font-size:12px;color:var(--ink-soft);
+    margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);
+  }
+
+  footer{
+    margin-top:48px;padding-top:20px;border-top:1px solid var(--line);
+    font-family:var(--mono);font-size:12px;color:var(--ink-faint);
+    text-align:center;
+  }
+
+  ::selection{background:var(--accent-soft);color:var(--accent);}
+</style>
+
+<div class="page">
+
+  <header>
+    <div class="eyebrow">Session Report</div>
+    <h1>InternGUI · monitor.iphuman.com 서버 이전 후속 대응</h1>
+    <div class="meta">
+      <span><b>날짜</b> 2026-09-04</span>
+      <span><b>범위</b> 접속 복구 · 버그 진단/수정 · 서버 데이터 동기화</span>
+      <span><b>대상 시스템</b> InternGUI, mon-app(AI 서버), monitor-dev</span>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="stat ok">
+      <div class="n">4</div>
+      <div class="l">수정 완료</div>
+    </div>
+    <div class="stat warn">
+      <div class="n">3</div>
+      <div class="l">원인 규명 · 조치 보류</div>
+    </div>
+    <div class="stat pending">
+      <div class="n">3</div>
+      <div class="l">확인/조치 필요</div>
+    </div>
+  </div>
+
+  <div class="open-items">
+    <h2>확인이 필요한 항목</h2>
+    <ul>
+      <li>InternGUI 원본 git bare 저장소 실제 위치 미확인 — 은지 대리님께 재문의 필요</li>
+      <li>monitor.iphuman.com git bare 저장소 위치도 동일하게 미확인 (참조 경로가 서버에 실존하지 않음)</li>
+      <li>대화 중 서버 <code>.env</code>의 <code>SERVER_PASSWORD</code>/<code>SUDO_PASSWORD</code>가 실수로 평문 노출됨 — 교체 권장</li>
+      <li>OpenAI API 키 재발급 필요 (기존 키 401 인증 실패, service account로 발급 권장)</li>
+      <li>"비유사단어" 오분류 수정안은 설계만 완료, 코드 적용은 아직 안 함</li>
+      <li>이미지 유사도 검색용 <code>/home/monitor/hf-cache</code> 생성 여부 최종 확정 대기</li>
+    </ul>
+  </div>
+
+  <div class="toc">
+    <div class="toc-title">Timeline</div>
+    <ol>
+      <li><a href="#t1"><span class="tnum">01</span><span class="status-dot ok"></span>InternGUI git 접속 복구</a></li>
+      <li><a href="#t2"><span class="tnum">02</span><span class="status-dot ok"></span>서버 토폴로지(Gate/Monitor/Web) 확정</a></li>
+      <li><a href="#t3"><span class="tnum">03</span><span class="status-dot ok"></span>"1차 매칭" HF_HOME 미설정 수정</a></li>
+      <li><a href="#t4"><span class="tnum">04</span><span class="status-dot ok"></span>중복 매칭 job(좀비 프로세스) 정리</a></li>
+      <li><a href="#t5"><span class="tnum">05</span><span class="status-dot warn"></span>"비유사단어" 오분류 원인 규명</a></li>
+      <li><a href="#t6"><span class="tnum">06</span><span class="status-dot warn"></span>OpenAI API 키 인증 실패 진단</a></li>
+      <li><a href="#t7"><span class="tnum">07</span><span class="status-dot ok"></span>홈페이지 필터 실행 포트 오류 수정</a></li>
+      <li><a href="#t8"><span class="tnum">08</span><span class="status-dot ok"></span>이미지 업로드 로그 오탐 수정</a></li>
+      <li><a href="#t9"><span class="tnum">09</span><span class="status-dot ok"></span>monitor-dev 로컬 저장소 재동기화</a></li>
+      <li><a href="#t10"><span class="tnum">10</span><span class="status-dot warn"></span>이미지 유사도 hf-cache 디렉토리 누락</a></li>
+    </ol>
+  </div>
+
+  <!-- 01 -->
+  <div class="card ok fade-in" id="t1">
+    <div class="card-head">
+      <div class="card-title"><span class="tnum">01</span><h3>InternGUI git 접속 복구</h3></div>
+      <span class="pill ok">수정 완료</span>
+    </div>
+    <p class="lede"><code>git pull</code>이 타임아웃으로 실패 — origin이 이전 서버(app.iphuman.com)를 그대로 가리키고 있었음.</p>
+    <p><code>~/.ssh/config</code>에 게이트 경유 3단 구성(<code>iphuman-gate</code> → <code>monitor-git</code> / <code>mon-app</code>)을 추가하고, <code>origin</code>/<code>live</code> remote를 새 경로로 재설정. VPN 연결 후 <code>mon-app</code> 접속은 정상 확인됨.</p>
+    <p><strong>단, </strong><code>origin</code>이 가리키는 bare 저장소(<code>monitor-git:/home/monitor/monitor.iphuman.com.git</code>) 자체가 서버에 실존하지 않는 것으로 확인 — InternGUI 저장소의 실제 현재 위치는 이번 세션에서 못 찾음.</p>
+    <div class="kv">~/.ssh/config · InternGUI .git/config (origin, live)</div>
+  </div>
+
+  <!-- 02 -->
+  <div class="card ok fade-in" id="t2">
+    <div class="card-head">
+      <div class="card-title"><span class="tnum">02</span><h3>서버 토폴로지 확정</h3></div>
+      <span class="pill ok">수정 완료</span>
+    </div>
+    <p>공유받은 정보와 실제 SFTP 설정을 대조해 호스트-키 매핑을 확정.</p>
+    <div class="files">
+      <span class="file-chip">iphuman-gate → 220.149.254.56:22</span>
+      <span class="file-chip">mon-app(AI서버) → 192.168.1.2</span>
+      <span class="file-chip">monitor-git → 192.168.1.50 (unreachable)</span>
+    </div>
+    <p style="margin-top:10px;">3개 키(<code>iphuman_gate</code>, <code>iphuman_monitor</code>, <code>iphuman_web</code>) 확인 완료. <code>monitor-git</code>(.50)은 게이트에서 "No route to host" — 라우팅 자체가 안 잡히는 상태로 남아있음.</p>
+  </div>
+
+  <!-- 03 -->
+  <div class="card ok fade-in" id="t3">
+    <div class="card-head">
+      <div class="card-title"><span class="tnum">03</span><h3>"1차 매칭" HF_HOME 미설정 수정</h3></div>
+      <span class="pill ok">수정 완료</span>
+    </div>
+    <p class="lede">InternGUI에서 "1차 매칭"을 실행하면 <code>00_match_llm.py</code>가 존재하지 않는 캐시 경로(<code>/home/monitor/hf-cache</code>)로 떨어져 크래시. 홈페이지 경로에선 정상 작동.</p>
+    <p>원인: 홈페이지는 <code>pipeline_runner.py</code>를 거치며 <code>HF_HOME</code>/<code>HOME</code>/<code>TRANSFORMERS_CACHE</code>를 명시적으로 세팅하지만, InternGUI는 <code>Api_runner.php</code>를 직접 호출해 이 env가 전혀 전달되지 않았음.</p>
+    <pre><span class="del">- "run": { "type": "chain", "scripts": [...], "continue_on_error": false }</span>
+<span class="add">+ "run": { "type": "chain", "scripts": [...], "continue_on_error": false,
++   "env": { "HOME": "/home/monitor",
++            "HF_HOME": "/home/monitor/.cache/huggingface",
++            "TRANSFORMERS_CACHE": "/home/monitor/.cache/huggingface" } }</span></pre>
+    <div class="files">
+      <span class="file-chip">web_dashboard/server_run_manifest.json</span>
+      <span class="file-chip">web_dashboard/app.py — server_run_run()</span>
+    </div>
+  </div>
+
+  <!-- 04 -->
+  <div class="card ok fade-in" id="t4">
+    <div class="card-head">
+      <div class="card-title"><span class="tnum">04</span><h3>중복 매칭 job 정리</h3></div>
+      <span class="pill ok">조치 완료</span>
+    </div>
+    <p>같은 <code>cha=2612-2</code>에 대해 job이 2개 동시 실행 중이던 것을 발견 (하나는 Mongo 상태가 "cancelled"인데도 실제 프로세스는 계속 GPU/CPU를 점유). 좀비 job(<code>pipeline_runner.py</code>, <code>00_match_db.py</code>, <code>00_match_llm.py</code> 3개 프로세스)을 SIGTERM으로 정리하고, 정상 job(<code>19025b54</code>) 하나만 남김.</p>
+  </div>
+
+  <!-- 05 -->
+  <div class="card warn fade-in" id="t5">
+    <div class="card-head">
+      <div class="card-title"><span class="tnum">05</span><h3>"비유사단어" 오분류 원인 규명</h3></div>
+      <span class="pill warn">원인 규명 · 미적용</span>
+    </div>
+    <p class="lede">2612-1차 VN4202627472 / 4020200027460 건 — 국내외 상표명이 사실상 동일한데("CLUB" vs "CLUBS" 한 글자 차이) "비유사단어"로 오분류됨.</p>
+    <p><code>get_phrase_status()</code>의 재검증 단계가 상표명을 <strong>최대 5단어까지만</strong> 이어붙여 비교(<code>make_joined_combinations(max_n=5)</code>). 교집합 자체는 <code>find_all_sequential_matches</code>(단어 수 제한 없음)로 정확히 추출되지만, 9단어짜리 문구를 재검증하는 단계가 5단어 이상은 아예 후보로 만들지도 않아 항상 실패.</p>
+    <p>별도로, 유사도 등급(1/2/3)은 이 버그와 무관하게 <code>포함관계판단()</code>(완전 일치 여부만 봄)으로 계산되어, 이번 건은 유사도 2로 이미 정상 산정되어 있었음 — 실제 필터링 결과에는 영향 없음.</p>
+    <p><strong>설계된 수정안</strong> — 기존 5단어 로직은 그대로 두고, 5단어를 넘어 "비유사단어"로 떨어진 phrase만 단어 수 제한 없이 재검사해 <code>"장문일치"</code>라는 별도 값으로 구분. 사용자 요청으로 코드는 적용하지 않고 원복함.</p>
+  </div>
+
+  <!-- 06 -->
+  <div class="card warn fade-in" id="t6">
+    <div class="card-head">
+      <div class="card-title"><span class="tnum">06</span><h3>OpenAI API 키 인증 실패</h3></div>
+      <span class="pill warn">원인 규명</span>
+    </div>
+    <p>"최종보고 상표명교집합" 캐시 적재(<code>GeneralNameCacheFilter</code>) 실행 로그에서 GPT 조회만 341건 전부 실패, 위키/네이버는 정상. <code>/v1/models</code> 인증 테스트 결과 <strong>401 Incorrect API key</strong> 확인.</p>
+    <p>저장된 키 길이가 56자로, 요즘 발급되는 <code>sk-proj-</code> 키(보통 150자 안팎)에 비해 비정상적으로 짧음 — 복사 과정에서 잘렸을 가능성. Service account로 재발급 권장 (특정 개인 계정에 종속되지 않도록).</p>
+  </div>
+
+  <!-- 07 -->
+  <div class="card ok fade-in" id="t7">
+    <div class="card-head">
+      <div class="card-title"><span class="tnum">07</span><h3>홈페이지 필터 실행 포트 오류</h3></div>
+      <span class="pill ok">수정 완료 (서버)</span>
+    </div>
+    <p class="lede">"필터 실행 실패: 러너 호출 실패" — <code>Analysis2vs.php::_runner_call()</code>이 자기 자신을 <code>https://127.0.0.1/</code>(포트 미지정 → 443)으로 호출하는데, AI 서버는 로컬에 TLS 리스너가 없고 nginx는 8080에서 평문 HTTP만 받는 구조.</p>
+    <p><code>ss -tln</code>으로 8080 확인, <code>curl</code>로 <code>x-api-key</code> 인증 포함 200 OK 응답 확인 후 반영.</p>
+    <pre><span class="del">- $ch = curl_init('https://127.0.0.1/' . ltrim($path, '/'));</span>
+<span class="add">+ $ch = curl_init('http://127.0.0.1:8080/' . ltrim($path, '/'));</span></pre>
+    <div class="kv">public/application/controllers/Analysis2vs.php · 백업: Analysis2vs.php.bak.20260904_145435 · php -l 통과</div>
+  </div>
+
+  <!-- 08 -->
+  <div class="card ok fade-in" id="t8">
+    <div class="card-head">
+      <div class="card-title"><span class="tnum">08</span><h3>이미지 업로드 로그 오탐 수정</h3></div>
+      <span class="pill ok">수정 완료</span>
+    </div>
+    <p><code>report_image_upload.py</code>가 <code>unzip -o && chmod -R a+rX</code>를 <code>&&</code>로 묶어 실행 — 이미지 폴더에 다른 계정(<code>llm</code>)이 만든 파일이 섞여 있어 그 파일에 대한 <code>chmod</code>만 권한 거부되고, 이게 전체 국가 스텝을 "해제 실패"로 잘못 표시. 실제로는 업로드/압축 해제 자체는 정상(zip 내용물과 서버 파일 크기·타임스탬프 대조로 확인).</p>
+    <pre><span class="del">- f"chmod -R a+rX {remote_image_dir}"</span>
+<span class="add">+ f"(chmod -R a+rX {remote_image_dir} 2>/dev/null; true)"</span></pre>
+    <div class="kv">dataScraping/tools/report_image_upload/report_image_upload.py</div>
+  </div>
+
+  <!-- 09 -->
+  <div class="card ok fade-in" id="t9">
+    <div class="card-head">
+      <div class="card-title"><span class="tnum">09</span><h3>monitor-dev 재동기화</h3></div>
+      <span class="pill ok">동기화 완료</span>
+    </div>
+    <p><code>C:\chaewon\monitor-dev</code>도 origin이 예전 <code>app.iphuman.com</code>을 가리키고 있어 <code>mon-app</code> 경로로 재설정했으나, bare 저장소 실체가 없어 <code>git fetch</code> 실패(항목 01과 동일 원인).</p>
+    <p>대안으로 서버 라이브 워킹 디렉토리를 <code>tar</code>로 직접 스트리밍해 동기화. <code>KR_mark</code>/<code>overseas_mark</code>/<code>uploads</code> 등 이미지·데이터 디렉토리(수백 GB)는 제외하고 코드만 받음.</p>
+  </div>
+
+  <!-- 10 -->
+  <div class="card warn fade-in" id="t10">
+    <div class="card-head">
+      <div class="card-title"><span class="tnum">10</span><h3>이미지 유사도 hf-cache 누락</h3></div>
+      <span class="pill warn">원인 규명 · 조치 대기</span>
+    </div>
+    <p><code>search_foreign_by_cha.py</code>(DINOv2 임베딩) 실행 시 항목 03과 같은 계열의 에러 — <code>/home/monitor/hf-cache</code>가 존재하지 않아 최초 다운로드 시 크래시.</p>
+    <p>이번 건은 항목 03과 달리 InternGUI 쪽 env 누락이 아니라, <code>run_imgsearch.py</code>가 <strong>의도적으로</strong> 이 경로를 지정("www-data도 읽을 수 있는 캐시"). 즉 서버 이전 시 이 디렉토리 자체가 안 옮겨진 것으로 판단 — 코드 수정이 아니라 서버에 디렉토리를 생성(+www-data 권한 부여)하는 조치가 필요. 실행 여부는 아직 미확정.</p>
+  </div>
+
+  <footer>InternGUI · monitor.iphuman.com — 2026-09-04</footer>
+
+</div>
